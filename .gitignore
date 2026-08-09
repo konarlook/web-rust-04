@@ -1,3 +1,6 @@
 .idea
 */target
 target
+.env
+.blog_token
+Cargo.lock
