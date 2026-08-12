@@ -3,4 +3,9 @@ name = "blog-proto"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[lib]
+name = "blog_proto"
+path = "src/lib.rs"
+
+[build-dependencies]
+tonic-prost-build = "0.14.6"
