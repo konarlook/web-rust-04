@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:17.10
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-app}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-app}
+      POSTGRES_DB: ${DATABASE_NAME:-blog}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+
+volumes:
+  postgres_data:
