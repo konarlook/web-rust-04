@@ -1,15 +1,19 @@
-use crate::domain::error::UserRegisterRequestError;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
+#[derive(Debug, Serialize, Deserialize)]
 pub struct User {
-    id: u64,
-    username: String,
-    email: String,
-    password_hash: String,
-    created_at: chrono::NaiveDateTime,
-}
-
-pub struct NewUser {
+    pub id: i64,
     pub username: String,
     pub email: String,
-    pub password: String,
+    #[serde(skip_serializing)]
+    pub password_hash: String,
+    pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct NewUserRequest {
+    pub username: String,
+    pub email: String,
+    pub password_hash: String,
 }

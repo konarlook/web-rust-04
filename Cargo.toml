@@ -9,3 +9,4 @@ members = [
 ]
 
 [workspace.dependencies]
+tokio = "1.53.1"

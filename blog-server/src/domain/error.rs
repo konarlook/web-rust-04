@@ -4,21 +4,13 @@ use uuid::Uuid;
 #[derive(Debug, Error)]
 pub enum UserError {
     #[error("user {0} not found")]
-    UserNotFound(Uuid),
-    #[error("user with name {0} already exists")]
-    UserAlreadyExists(String),
+    NotFound(String),
+    #[error("user already exists")]
+    AlreadyExists,
     #[error("incorrect login or password")]
     InvalidCredentials,
-    #[error(transparent)]
-    RegisterRequestError(UserRegisterRequestError),
-}
-
-#[derive(Debug, Error)]
-pub enum UserRegisterRequestError {
-    #[error("email is empty")]
-    EmptyEmailError,
-    #[error("password too short")]
-    PasswordTooShort,
+    #[error("storage failure")]
+    Storage(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
 #[derive(Debug, Error)]
