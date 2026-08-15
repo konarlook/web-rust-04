@@ -9,6 +9,16 @@ pub enum UserError {
     UserAlreadyExists(String),
     #[error("incorrect login or password")]
     InvalidCredentials,
+    #[error(transparent)]
+    RegisterRequestError(UserRegisterRequestError),
+}
+
+#[derive(Debug, Error)]
+pub enum UserRegisterRequestError {
+    #[error("email is empty")]
+    EmptyEmailError,
+    #[error("password too short")]
+    PasswordTooShort,
 }
 
 #[derive(Debug, Error)]

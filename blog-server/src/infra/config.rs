@@ -6,6 +6,7 @@ pub struct Config {
     pub database_max_connect: u32,
     pub host: String,
     pub port: u16,
+    pub allowed_origins: Vec<String>,
 }
 
 impl Config {
@@ -14,16 +15,24 @@ impl Config {
         let database_max_connect = std::env::var("DATABASE_MAX_CONNECT")
             .unwrap_or_else(|_| "10".into())
             .parse()?;
+
         let host = std::env::var("HOST").unwrap_or_else(|_| "127.0.0.1".into());
         let port = std::env::var("PORT")
             .unwrap_or_else(|_| "8080".into())
             .parse()?;
+
+        let allowed_origins = std::env::var("ALLOWED_ORIGINS")
+            .unwrap_or_else(|_| "*".into())
+            .split(',')
+            .map(|s| s.trim().into())
+            .collect();
 
         Ok(Self {
             database_url,
             database_max_connect,
             host,
             port,
+            allowed_origins,
         })
     }
 }

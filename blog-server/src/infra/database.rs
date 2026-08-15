@@ -15,5 +15,6 @@ pub async fn create_pool(cfg: &Config) -> Result<PgPool, sqlx::Error> {
 
 pub async fn run_migrations(pool: &PgPool) -> Result<(), sqlx::Error> {
     migrate!("./migrations").run(pool).await?;
+    tracing::info!("Migrations completed");
     Ok(())
 }
