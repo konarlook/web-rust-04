@@ -11,6 +11,10 @@ pub enum UserError {
     InvalidCredentials,
     #[error("storage failure")]
     Storage(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("internal server error")]
+    Internal(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
+    #[error("invalid token")]
+    InvalidToken,
 }
 
 #[derive(Debug, Error)]
