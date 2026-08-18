@@ -1,4 +1,7 @@
+use anyhow::{bail, Context};
 use serde::Deserialize;
+
+const MIN_JWT_SECRET_LEN: usize = 32;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct Config {
@@ -7,6 +10,7 @@ pub struct Config {
     pub host: String,
     pub port: u16,
     pub allowed_origins: Vec<String>,
+    pub jwt_secret: String,
 }
 
 impl Config {
@@ -27,12 +31,22 @@ impl Config {
             .map(|s| s.trim().into())
             .collect();
 
+        let jwt_secret = std::env::var("JWT_SECRET").context("JWT_SECRET must be set")?;
+        if jwt_secret.len() < MIN_JWT_SECRET_LEN {
+            bail!(
+                "JWT_SECRET must be at least {MIN_JWT_SECRET_LEN} bytes long, got {}",
+                jwt_secret.len()
+            );
+        }
+
+
         Ok(Self {
             database_url,
             database_max_connect,
             host,
             port,
             allowed_origins,
+            jwt_secret,
         })
     }
 }

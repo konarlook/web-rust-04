@@ -97,7 +97,12 @@ impl PostRepository for PgPostRepository {
             })
             .collect();
 
-        Ok(PostPage { posts, total })
+        Ok(PostPage {
+            posts,
+            total,
+            limit,
+            offset,
+        })
     }
 
     async fn delete(&self, id: i64) -> Result<(), PostError> {

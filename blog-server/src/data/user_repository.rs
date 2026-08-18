@@ -8,6 +8,12 @@ pub struct PgUserRepository {
     pool: PgPool,
 }
 
+impl PgUserRepository {
+    pub fn new(pool: PgPool) -> Self {
+        Self { pool }
+    }
+}
+
 #[async_trait]
 impl UserRepository for PgUserRepository {
     async fn create(&self, user_info: NewUserRequest) -> Result<User, UserError> {
@@ -21,7 +27,7 @@ impl UserRepository for PgUserRepository {
         )
         .fetch_one(&self.pool)
         .await
-        .map_err(|e| to_user_error(e))?;
+        .map_err(to_user_error)?;
         Ok(user)
     }
 
@@ -29,16 +35,16 @@ impl UserRepository for PgUserRepository {
         let row = sqlx::query_as!(User, "SELECT * FROM users WHERE username = $1", username,)
             .fetch_optional(&self.pool)
             .await
-            .map_err(|e| to_user_error(e))?;
-        Ok(row.map(User::from))
+            .map_err(to_user_error)?;
+        Ok(row)
     }
 }
 
 fn to_user_error(e: Error) -> UserError {
-    if let Some(db) = e.as_database_error() {
-        if db.code().as_deref() == Some("23505") {
-            return UserError::AlreadyExists;
-        }
-    }
+    if let Some(db) = e.as_database_error()
+        && db.code().as_deref() == Some("23505")
+    {
+        return UserError::AlreadyExists;
+    };
     UserError::Storage(Box::new(e))
 }

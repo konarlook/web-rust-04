@@ -55,4 +55,6 @@ pub struct UpdatePostReq {
 pub struct PostPage {
     pub posts: Vec<Post>,
     pub total: i64,
+    pub limit: i64,
+    pub offset: i64,
 }
