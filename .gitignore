@@ -3,4 +3,4 @@
 target
 .env
 .blog_token
-Cargo.lock
+/blog-server/.sqlx/

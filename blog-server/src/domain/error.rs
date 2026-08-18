@@ -1,5 +1,4 @@
 use thiserror::Error;
-use uuid::Uuid;
 
 #[derive(Debug, Error)]
 pub enum UserError {
@@ -20,9 +19,13 @@ pub enum UserError {
 #[derive(Debug, Error)]
 pub enum PostError {
     #[error("failed to create post, empty title")]
-    EmptyPostTitle,
+    EmptyTitle,
+    #[error("post title must not exceed {0} characters")]
+    TitleTooLong(usize),
     #[error("post {0} not found")]
-    PostNotFound(Uuid),
-    #[error("forbidden")]
+    NotFound(i64),
+    #[error("post belongs to another author")]
     Forbidden,
+    #[error("storage failure")]
+    Storage(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }

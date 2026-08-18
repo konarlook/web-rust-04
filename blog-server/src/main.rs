@@ -1,7 +1,8 @@
+pub mod application;
+pub mod data;
 pub mod domain;
 pub mod infra;
 pub mod presentation;
-pub mod data;
 
 use crate::infra::config::Config;
 use crate::infra::database::{create_pool, run_migrations};
