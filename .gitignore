@@ -4,3 +4,4 @@ target
 .env
 .blog_token
 /blog-server/.sqlx/
+/.sqlx/

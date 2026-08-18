@@ -8,7 +8,7 @@ const MAX_TITLE_LEN: usize = 256;
 pub struct Post {
     pub id: i64,
     pub title: String,
-    pub content: Option<String>,
+    pub content: String,
     pub author_id: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -49,4 +49,10 @@ pub struct CreatePostReq {
 pub struct UpdatePostReq {
     pub title: Option<String>,
     pub content: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PostPage {
+    pub posts: Vec<Post>,
+    pub total: i64,
 }
