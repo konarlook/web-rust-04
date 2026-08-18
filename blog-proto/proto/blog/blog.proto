@@ -4,26 +4,28 @@ package blog;
 
 import "google/protobuf/timestamp.proto";
 
-// Сервис работы с пользователем
-service UserService {
-  // Регистрация пользователя
-  rpc RegisterUser(RegisterRequest) returns (RegisterResponse);
+service BlogService {
+  rpc Register(RegisterRequest) returns (AuthResponse);
+  rpc Login(LoginRequest) returns (AuthResponse);
 
-  // Авторизация пользователя
-  rpc LoginUser(LoginRequest) returns (LoginResponse);
+  rpc CreatePost(CreatePostRequest) returns (PostResponse);
+  rpc GetPost(GetPostRequest) returns (PostResponse);
+  rpc UpdatePost(UpdatePostRequest) returns (PostResponse);
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+}
 
-  // Выход из аккаунта
-  rpc LogoutUser(LogoutRequest) returns (LogoutResponse);
+message User {
+  int64  id = 1;
+  string username = 2;
+  string email = 3;
+  google.protobuf.Timestamp created_at = 4;
 }
 
 message RegisterRequest {
-  string email = 1;
-  string username = 2;
+  string username = 1;
+  string email = 2;
   string password = 3;
-}
-
-message RegisterResponse {
-  bool resp = 1;
 }
 
 message LoginRequest {
@@ -31,66 +33,55 @@ message LoginRequest {
   string password = 2;
 }
 
-message LoginResponse {
-  bool status = 1;
+message AuthResponse {
+  string token = 1;
+  User user = 2;
 }
 
-message LogoutRequest {}
-message LogoutResponse {
-  bool status = 1;
-}
-
-service PostService {
-  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
-  rpc GetPost(GetPostRequest) returns (GetPostResponse);
-  rpc UpdatePost(UpdatePostRequest) returns (UpdatePostResponse);
-  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
-  rpc ListPosts(ListPostRequest) returns (ListPostResponse);
+message Post {
+  int64 id = 1;
+  string title = 2;
+  string content = 3;
+  int64 author_id = 4;
+  google.protobuf.Timestamp created_at = 5;
+  google.protobuf.Timestamp updated_at = 6;
 }
 
 message CreatePostRequest {
-  string head = 1;
-  string body = 2;
-}
-
-message CreatePostResponse {
-  string post_id = 1;
+  string title = 1;
+  string content = 2;
 }
 
 message GetPostRequest {
-  string post_id = 1;
-}
-
-message GetPostResponse {
-  string head = 1;
-  string body = 2;
-  string author = 3;
+  int64 id = 1;
 }
 
 message UpdatePostRequest {
-  string post_id = 1;
-  string head = 2;
-  string body = 3;
-}
-
-message UpdatePostResponse {
-  bool status = 1;
+  int64 id = 1;
+  optional string title = 2;
+  optional string content = 3;
 }
 
 message DeletePostRequest {
-  string post_id = 1;
+  int64 id = 1;
 }
 
 message DeletePostResponse {
-  bool status = 1;
+  bool success = 1;
 }
 
-message ListPostRequest {
-  google.protobuf.Timestamp dt_from = 1;
-  google.protobuf.Timestamp dt_to = 2;
+message PostResponse {
+  Post post = 1;
+}
+
+message ListPostsRequest {
+  optional int64 limit = 1;
+  optional int64 offset = 2;
+}
+
+message ListPostsResponse {
+  repeated Post posts = 1;
+  int64 total = 2;
   int64 limit = 3;
-}
-
-message ListPostResponse {
-  repeated GetPostResponse posts = 1;
+  int64 offset = 4;
 }

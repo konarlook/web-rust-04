@@ -13,14 +13,19 @@ use crate::infra::database::{create_pool, run_migrations};
 use crate::infra::jwt::JwtService;
 use crate::infra::logging::init_logging;
 use crate::infra::password::ArgonHasher;
+use crate::presentation::grpc::service::BlogGrpcService;
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{App, HttpServer, web};
+use anyhow::Context;
+use blog_proto::blog_service_server::BlogServiceServer;
+use std::net::SocketAddr;
 use std::sync::Arc;
+use tonic::transport::Server;
 
 const CORS_MAX_AGE_SECS: usize = 3600;
 
-#[tokio::main(flavor = "current_thread")]
+#[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     init_logging();
@@ -49,9 +54,11 @@ async fn main() -> anyhow::Result<()> {
     let origins = cfg.allowed_origins.clone();
 
     let http_addr = format!("{}:{}", cfg.host, cfg.port);
-    tracing::info!(address = %http_addr, "starting HTTP server");
+    let grpc_addr: SocketAddr = format!("{}:{}", cfg.host, cfg.grpc_port)
+        .parse()
+        .context("invalid gRPC bind address")?;
 
-    HttpServer::new(move || {
+    let http_server = HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
             .wrap(build_cors(&origins))
@@ -61,8 +68,31 @@ async fn main() -> anyhow::Result<()> {
             .configure(presentation::http::configure)
     })
     .bind(&http_addr)?
-    .run()
-    .await?;
+    .run();
+
+    let grpc_server = Server::builder()
+        .add_service(BlogServiceServer::new(BlogGrpcService::new(
+            auth_service,
+            blog_service,
+            jwt,
+        )))
+        .serve(grpc_addr);
+
+    tracing::info!(http = %http_addr, grpc = %grpc_addr, "starting server");
+
+    tokio::select! {
+        result = http_server => {
+            result.context("HTTP server failed")?;
+            tracing::warn!("HTTP server stopped");
+        }
+        result = grpc_server => {
+            result.context("gRPC server failed")?;
+            tracing::warn!("gRPC server stopped");
+        }
+        _ = tokio::signal::ctrl_c() => {
+            tracing::info!("shutdown signal received, stopping servers")
+        }
+    }
 
     Ok(())
 }

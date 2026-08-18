@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::{Context, bail};
 use serde::Deserialize;
 
 const MIN_JWT_SECRET_LEN: usize = 32;
@@ -9,6 +9,7 @@ pub struct Config {
     pub database_max_connect: u32,
     pub host: String,
     pub port: u16,
+    pub grpc_port: u16,
     pub allowed_origins: Vec<String>,
     pub jwt_secret: String,
 }
@@ -25,6 +26,11 @@ impl Config {
             .unwrap_or_else(|_| "8080".into())
             .parse()?;
 
+        let grpc_port = std::env::var("GRPC_PORT")
+            .unwrap_or_else(|_| "50051".into())
+            .parse()
+            .context("GRPC_PORT must be a number")?;
+
         let allowed_origins = std::env::var("ALLOWED_ORIGINS")
             .unwrap_or_else(|_| "*".into())
             .split(',')
@@ -39,12 +45,12 @@ impl Config {
             );
         }
 
-
         Ok(Self {
             database_url,
             database_max_connect,
             host,
             port,
+            grpc_port,
             allowed_origins,
             jwt_secret,
         })
