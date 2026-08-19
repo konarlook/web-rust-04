@@ -75,7 +75,7 @@ impl HttpClient {
     ) -> Result<Post, BlogClientError> {
         let response = self
             .client
-            .post(self.url("api/posts"))
+            .post(self.url("/api/posts"))
             .bearer_auth(token)
             .json(&CreatePostBody { title, content })
             .send()
