@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-sacle=1">
+    <title>Blog</title>
+    <style>
+        :root {
+            --border: #d7d7dc;
+            --muted: #6b6b76;
+            --accent: #2f6fd0;
+            --danger: #c0392b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 46rem;
+            margin: 0 auto;
+            padding: 1.5rem;
+            line-height: 1.5;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: .75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 {
+            font-size: 1.4rem;
+            margin: 0;
+        }
+
+        .status {
+            color: var(--muted);
+            font-size: .9rem;
+        }
+
+        section {
+            margin-bottom: 1.5rem;
+        }
+
+        .tabs {
+            display: flex;
+            gap: .5rem;
+            margin-bottom: .75rem;
+        }
+
+        .tabs button {
+            background: none;
+            border: 1px solid var(--border);
+        }
+
+        .tabs button[aria-selected="true"] {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: .5rem;
+            margin-bottom: .5rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            font: inherit;
+        }
+
+        textarea {
+            min-height: 6rem;
+            resize: vertical;
+        }
+
+        button {
+            padding: .45rem .9rem;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            background: #fff;
+            cursor: pointer;
+            font: inherit;
+        }
+
+        button.primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        button.danger {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        article {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: .9rem 1rem;
+            margin-bottom: .75rem;
+        }
+
+        article h3 {
+            margin: 0 0 .3rem;
+            font-size: 1.05rem;
+        }
+
+        article .meta {
+            color: var(--muted);
+            font-size: .8rem;
+            margin-bottom: .5rem;
+        }
+
+        article .actions {
+            display: flex;
+            gap: .5rem;
+            margin-top: .75rem;
+        }
+
+        #error {
+            background: #fdecea;
+            border: 1px solid #f5c2bd;
+            color: var(--danger);
+            padding: .6rem .8rem;
+            border-radius: 4px;
+            margin-bottom: 1rem;
+        }
+
+        [hidden] {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Blog</h1>
+    <div>
+        <span class="status" id="auth-status">Не выполнен вход</span>
+        <button id="logout" hidden>Выйти</button>
+    </div>
+</header>
+
+<div id="error" hidden></div>
+
+<section id="auth-section">
+    <div class="tabs">
+        <button id="tab-login" aria-selected="true">Вход</button>
+        <button id="tab-register" aria-selected="false">Регистрация</button>
+    </div>
+
+    <form id="login-form">
+        <input name="username" placeholder="Имя пользователя" autocomplete="username">
+        <input name="password" type="password" placeholder="Пароль"
+               autocomplete="current-password">
+        <button class="primary" type="submit">Войти</button>
+    </form>
+
+    <form id="register-form" hidden>
+        <input name="username" placeholder="Имя пользователя" autocomplete="username">
+        <input name="email" type="email" placeholder="Email" autocomplete="email">
+        <input name="password" type="password" placeholder="Пароль"
+               autocomplete="new-password">
+        <button class="primary" type="submit">Зарегистрироваться</button>
+    </form>
+</section>
+
+<section id="create-section" hidden>
+    <h2>Новый пост</h2>
+    <form id="create-form">
+        <input name="title" placeholder="Заголовок">
+        <textarea name="content" placeholder="Содержание"></textarea>
+        <button class="primary" type="submit">Опубликовать</button>
+    </form>
+</section>
+
+<section>
+    <h2>Посты</h2>
+    <div id="posts"></div>
+</section>
+
+<script type="module">
+    import init, {BlogApp} from "./pkg/blog_wasm.js";
+
+    await init();
+
+    const app = new BlogApp("http://localhost:8080");
+
+    const $ = (id) => document.getElementById(id);
+    const errorBox = $("error");
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.hidden = false;
+    }
+
+    function clearError() {
+        errorBox.hidden = true;
+    }
+
+    function currentUserId() {
+        const token = localStorage.getItem("blog_token");
+        if (!token) return null;
+        try {
+            const payload = token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+            return JSON.parse(atob(payload)).user_id;
+        } catch {
+            return null;
+        }
+    }
+
+    function renderAuthState() {
+        const authenticated = app.isAuthenticated();
+        $("auth-status").textContent = authenticated
+            ? "Вход выполнен"
+            : "Не выполнен вход";
+        $("logout").hidden = !authenticated;
+        $("auth-section").hidden = authenticated;
+        $("create-section").hidden = !authenticated;
+    }
+
+    function renderPost(post, userId) {
+        const article = document.createElement("article");
+
+        const title = document.createElement("h3");
+        title.textContent = post.title;
+        article.appendChild(title);
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent =
+            `#${post.id} · автор ${post.author_id} · ` +
+            new Date(post.created_at).toLocaleString("ru-RU");
+        article.appendChild(meta);
+
+        const content = document.createElement("p");
+        content.textContent = post.content;
+        article.appendChild(content);
+
+        const isAuthor = userId !== null && post.author_id == userId;
+        if (!isAuthor) {
+            return article;
+        }
+
+        const actions = document.createElement("div");
+        actions.className = "actions";
+
+        const editButton = document.createElement("button");
+        editButton.textContent = "Редактировать";
+        editButton.onclick = async () => {
+            const {app, loadPosts, handle, clearError} = window.blogActions;
+            clearError();
+            const newTitle = prompt("Заголовок", post.title);
+            const newContent = prompt("Содержание", post.content);
+            if (newTitle === null && newContent === null) return;
+
+            try {
+                await app.updatePost(BigInt(post.id), newTitle, newContent);
+                await loadPosts();
+            } catch (err) {
+                handle(err);
+            }
+        };
+        actions.appendChild(editButton);
+
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "danger";
+        deleteButton.textContent = "Удалить";
+        deleteButton.onclick = async () => {
+            const {app, loadPosts, handle, clearError} = window.blogActions;
+            clearError();
+
+            if (!confirm(`Удалить пост «${post.title}»?`)) return;
+
+            try {
+                await app.deletePost(BigInt(post.id));
+                await loadPosts();
+            } catch (err) {
+                handle(err);
+            }
+        };
+        actions.appendChild(deleteButton);
+
+        article.appendChild(actions);
+        return article;
+    }
+
+    async function loadPosts() {
+        try {
+            const page = await app.loadPosts(20n, 0n);
+            const userId = currentUserId();
+            const container = $("posts");
+            container.innerHTML = "";
+
+            if (page.posts.length === 0) {
+                container.textContent = "Постов пока нет";
+                return;
+            }
+
+            for (const post of page.posts) {
+                container.appendChild(renderPost(post, userId));
+            }
+        } catch (err) {
+            handle(err);
+        }
+    }
+
+    function handle(err) {
+        if (err.status === 401) {
+            app.logout();
+            renderAuthState();
+            showError("Сессия истекла, войдите снова");
+        } else {
+            showError(err.message ?? String(err));
+        }
+    }
+
+    $("tab-login").onclick = () => {
+        $("login-form").hidden = false;
+        $("register-form").hidden = true;
+        $("tab-login").ariaSelected = "true";
+        $("tab-register").ariaSelected = "false";
+    };
+    $("tab-register").onclick = () => {
+        $("login-form").hidden = true;
+        $("register-form").hidden = false;
+        $("tab-login").ariaSelected = "false";
+        $("tab-register").ariaSelected = "true";
+    };
+
+    $("login-form").onsubmit = async (event) => {
+        event.preventDefault();
+        clearError();
+        const form = new FormData(event.target);
+        const username = form.get("username").trim();
+        const password = form.get("password");
+
+        if (!username || !password) {
+            return showError("Заполните имя пользователя и пароль");
+        }
+
+        try {
+            await app.login(username, password);
+            event.target.reset();
+            renderAuthState();
+            await loadPosts();
+        } catch (err) {
+            handle(err);
+        }
+    };
+
+    $("register-form").onsubmit = async (event) => {
+        event.preventDefault();
+        clearError();
+        const form = new FormData(event.target);
+        const username = form.get("username").trim();
+        const email = form.get("email").trim();
+        const password = form.get("password");
+
+        if (!username || !email || !password) {
+            return showError("Заполните все поля");
+        }
+
+        try {
+            await app.register(username, email, password);
+            event.target.reset();
+            renderAuthState();
+            await loadPosts();
+        } catch (err) {
+            handle(err);
+        }
+    };
+
+    $("create-form").onsubmit = async (event) => {
+        event.preventDefault();
+        clearError();
+        const form = new FormData(event.target);
+        const title = form.get("title").trim();
+        const content = form.get("content").trim();
+
+        if (!title) {
+            return showError("Заголовок не может быть пустым");
+        }
+
+        try {
+            await app.createPost(title, content);
+            event.target.reset();
+            await loadPosts();
+        } catch (err) {
+            handle(err);
+        }
+    };
+
+    $("logout").onclick = () => {
+        app.logout();
+        renderAuthState();
+        loadPosts();
+    };
+
+    window.blogActions = {app, loadPosts, handle, clearError};
+
+    renderAuthState();
+    await loadPosts();
+</script>
+
+</body>
+</html>
